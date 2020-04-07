@@ -1,0 +1,11 @@
+{
+  "name": "lichesstrollbot",
+  "version": "1.0.0",
+  "description": "Troll your friends on lichess by sending them text messages when they lose games",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Theo Stavrides",
+  "license": "ISC"
+}
