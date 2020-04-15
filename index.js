@@ -1,7 +1,7 @@
 const dotenv = require('dotenv'); dotenv.config();
 const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const lichess = require('./lib/chess/lichess')(process.env.LICHESS_TOKEN)
-const db = require('./db');
+const lichess = require('./lib/lichess')(process.env.LICHESS_TOKEN)
+const db = require('./lib/db');
 const { PERSONAL_NUMBER } = process.env;
 
 const twilio = {
@@ -24,16 +24,14 @@ const moveFrontToBack = arr => {
 const lichessRequestHandler = async ({ tasks, throttle }) => {
 	const taskHandler = queue => {
 		const task = queue[0];
-		task()
-			.then(data => { 
-				const nextActions = moveFrontToBack(queue);
-				next(nextActions, throttle);
-			})
-			.catch(err => { 
-				console.error(err);
-				console.log('Trying again in 61 seconds');
-				next(queue, 61000);
-			})
+		task().then(data => { 
+			const nextActions = moveFrontToBack(queue);
+			next(nextActions, throttle);
+		}).catch(err => { 
+			console.error(err);
+			console.log('Trying again in 61 seconds');
+			next(queue, 61000);
+		})
 	}
 	const next = (queue, ms) => setTimeout(() => taskHandler(queue), ms);
 	next(tasks, throttle);
@@ -55,9 +53,9 @@ const handleNoNewGameDetected = user => {
 const sendMessageOnNewGame = (user, phoneNumber) => {
 	return async () => {
 		const savedGameId = await db.getUsersLastGameId(user);
+		const game = await lichess.getLastGameOfUser(user, { parse: true });
+		const lastLichessGameId = lichess.getId(game);
 		if (savedGameId) {
-			const game = await lichess.getLastGameOfUser(user, { parse: true });
-			const lastLichessGameId = lichess.getId(game);
 			lastLichessGameId !== savedGameId ?
 				handleNewGameDetected(user, game, phoneNumber) :
 				handleNoNewGameDetected(user);
@@ -68,11 +66,12 @@ const sendMessageOnNewGame = (user, phoneNumber) => {
 }; 
 
 lichessRequestHandler({ 
-	throttle: 5000,
+	throttle: 4000,
 	tasks: [
 		sendMessageOnNewGame('dandyfap', PERSONAL_NUMBER),
 		sendMessageOnNewGame('zvemoxes', PERSONAL_NUMBER),
-		sendMessageOnNewGame('unclevarda', PERSONAL_NUMBER)
+		sendMessageOnNewGame('unclevarda', PERSONAL_NUMBER),
+		sendMessageOnNewGame('ryanwm', PERSONAL_NUMBER)
 	]
 });
 
